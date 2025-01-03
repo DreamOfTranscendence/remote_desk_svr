@@ -1,0 +1,592 @@
+<!doctype html>
+<html>
+<head>
+    <title>Login to Remote Desk</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type="text/css" >
+
+html {
+	position: fixed;
+	height:100%;
+	padding: 0pt;
+	width:100%;
+	overflow: hidden;
+}
+
+body {
+  margin: 0pt;
+  padding: 0pt;
+	width:100%;
+	height:100%;
+	/*margin-top:-1pt;
+	margin-left:-1pt;*/
+}
+
+#topmenu{
+ z-index:907;
+ position: fixed;
+ top:2pt;
+ height:2pt;
+ width: 90%;  
+}
+
+#topmenu button{
+ margin-top:5pt;
+ padding:2pt;
+ font-size:18pt;
+}
+
+#shMnu{ opacity:0.7; }
+
+#ball_m {
+ position: fixed;
+ top: 30pt;
+ height:80%;
+ width:99%;
+}
+
+#ball_m .ballc{
+ position:fixed;
+ top:60%;
+ left:50%;
+ z-index: 800;
+ /*margin-left:auto;
+ margin-right:auto;*/
+ width:0pt;
+ height:0pt;
+}
+
+#ball_m ball {
+ display:block;
+ position:relative;
+ /* z-index:807; */
+ border:2pt solid black;
+ background-color:#dd7710;
+ border-radius: 700pt;
+ /* width:240pt;
+ height:240pt;
+ top:-160pt;
+ left:-120pt; */
+}
+
+.buttons{
+    margin-left:5%;
+    margin-right:5%;
+}
+
+#ball_m mbtn{
+ display:inline-block;
+ z-index:703;
+ border: 2pt solid black;
+ background-color:#dddddd;
+}
+
+#ball_m #m_b1{
+ width:40%;
+ height:200pt;
+ border-top-left-radius: 100pt;
+}
+#ball_m #m_b2{
+ background-color:#aaaaaa;
+ vertical-align: top;
+ width:15%;
+ height:120pt;
+}
+#ball_m #m_b3{
+ width:40%;
+ height:200pt;
+ border-top-right-radius: 100pt;
+}
+
+
+.pagefull{
+	position:fixed;
+	top:0pt;
+	left:0pt;
+	width:100%;
+	height:100%;
+}
+
+#gui{
+	overflow:hidden;
+}
+
+#gui canvas{
+ z-index:500;
+ position:fixed;
+ top:2px; left:2px;
+}
+
+#gui #ctrl_btn{
+ position:fixed;
+ z-index:550;
+ top:0pt; left:0pt;
+ margin:0pt;
+ padding:5pt;
+ width:98%;
+ opacity:0.7;
+}
+
+#gui #ctrl_btn button{
+ font-size:20pt;
+ margin:2pt;
+}
+
+#lgn_f {
+ position:absolute;
+ top:10%;
+ height:85%;
+ padding:20pt;
+}
+
+
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+#dbgb textarea{
+ z-index:901;
+ margin:0pt;
+ padding:10pt;
+ width:95%;
+ font-size:16pt;
+}
+
+#dbgb #cout{
+ height:70%;
+}
+
+#dbgb #cin{
+ height:20%;
+}
+
+        </style>    
+</head>
+<script type="text/javascript" src="/./algswp12.js"></script>
+<script type="text/javascript" src="/./fak.js"></script>
+<body>
+<div id="topmenu" >
+<button id="shMnu" >Menu</button>
+<span id="disApear" style="display:none;">
+<button id="sDesk"> Desktop </button>
+<button id="sTmouse"> TrackerBall Mouse </button>
+<button id="sMkey"> Show keyboard </button>
+<button id="sFitr"> File transfer </button>
+<button id="sDbg" style="font-size:10pt;padding:2pt;" > Debug </button>
+</span>
+</div>
+
+<div id="gui" class="pagefull" style="display:none;" >
+<div id="ctrl_btn" style="display:none;" >
+<button disabled>Menu</button><button>Ctrl</button><button>Alt</button><button>Del</button> <br>
+<button>Home</button><button>End</button><button>Pg Up</button><button>Pg Dwn</button>
+</div>
+</div>
+
+<div id="fitr" class="pagefull" style="display:none;" >
+Folder Path: <input type="text" > <br>
+<table><tbody><th>
+<td>Select</td><td>Name</td><td>Size</td><td>is File</td><td>Date Modified</td>
+</th></tbody></table> <br>
+<button>Download selected</button><br>
+Upload file(s): <input type="file" title="Upload files" />
+</div>
+
+<div id="dbgb" class="pagefull" style="display:none;" >
+<textarea id="cout" readonly ></textarea>
+<br> <textarea id="cin"></textarea>
+</div>
+
+<div id="lgn_f">
+	<br>
+	<br>
+    <b> Login to Remote Desk </b>
+    <br>    Input the secret password: <input type="password" id="k" placeholder="Input the secret password" />
+    <input id="lgn" type="button" value="Login" />
+</div>
+
+
+<input type="text" id="sho_keyb" style="position:fixed;top:-9001pt;" /> <!-- need input text to click on to show keyboard on mobile devices -->
+
+<div id="ball_m" class="unselectable" style="display:none;" >
+	<div class="buttons"><mbtn id="m_b1"></mbtn><mbtn id="m_b2"></mbtn><mbtn id="m_b3"></mbtn></div>
+	<div class="ballc"> <ball></ball> </div>
+</div>
+
+<script type="text/javascript">
+//API core functions section
+ var d=document,gId="getElementById",gTN="getElementsByTagName",cE="createElement",aC="appendChild";
+    //need to combine the desk portal page with the login page so password encrypt table can be stored in page temporary javascript mememory that will dissapear on reload
+self.is_lgdn=false;
+var db_backlog=[], //debug
+sv_backlog=function sv_backlog(s){
+	var o1={"this":this};
+	db_backlog.unshift(o1);
+	if(sv_backlog.caller)  o1.call=sv_backlog.caller.name; //put .name to save memory?
+	if(db_backlog.length>50) db_backlog.pop(); //most recent at beggining
+	if(s) return (o1.s=s);
+}, // */
+jrequire=function require(jsurl){
+  var jse=d[cE]("script"); jse.type="text/javascript"; jse.src=jsurl;
+  d.body[aC](jse); setTimeout(function(){ var jp=jse.parentNode; if(jp)jp.removeChild(jse); },5000);
+},
+XHR=function XHR(url,data,rshf,rtype){
+ var xh1=new XMLHttpRequest();
+ xh1.open(data?"POST":"GET",url,1);
+ xh1.responseType=rtype||"text";
+ if(typeof rshf=="function")xh1.onloadend=rshf.bind(xh1);
+ xh1.send(data||undefined);
+},
+reauth_if=function Reauth_if_used(fn,thisf,aarg){
+	chngCuk();
+	var dc=d.cookie, irfak=dc.indexOf("_rfak=")+1, Lfak=((dc.indexOf(";",irfak)+1)||dc.length)-irfak, RV=!(irfak&&Lfak>50);
+	if(RV){
+	  var oldf=is_lgdn;
+	  if(oldf.name=="nwFak_cb"){ console.error(sv_backlog("Error reauth collision !!")); return "collision";}
+	  self.is_lgdn=function nwFak_cb(iL){ if(iL&&typeof fn=="function")fn.apply(thisf,aarg);else console.error(sv_backlog("auth error reauth_if")); is_lgdn=oldf;};
+	  jrequire("/./is_lgdn.js?nw_chll=1");
+	}
+	return RV;
+}, //end of reauth_if
+X0I_backlog=["",[]], X0I_busy=false,
+X0I=function X0I(s,cb,i){	//set s to false for fak Only functionality, use for requesting screen.jpeg
+	var baki, bkcb=X0I_backlog[1];
+	if(X0I_busy){
+	  X0I_backlog[0]+=" "+s; bkcb.push(cb); 
+	  if(bkcb.length>5) console.error(sv_backlog("More than 5 pending user operations!"));
+	  return 0;
+	}
+	if(reauth_if(X0I,this,arguments)){
+		if(typeof i!="number") i=0;
+		var wrs="Warning, X0I call stack is too high for comfort ( stack > 5 )"; i++;
+		if(i>5){ console.error(sv_backlog(wrs)); alert(wrs); return wrs; }
+		 console.log("X0I called, waiting auth");
+		return "Wait for new fak (auth)";
+	}
+
+	if(bkcb.length){
+	  baki=X0I_backlog[0]+" "+s; s=baki; X0I_backlog[0]=""; bkcb.push(cb);
+	  cb=function(){ var cbf; while(bkcb.length){ cbf=bkcb.shift(); if(typeof cbf=="function")cbf.apply(this,arguments); }; };
+	  i=1;
+	} //oops what a mess;
+
+	if(!s){ if(typeof cb=="function")cb(); return "No command sent, using other feature"; };
+	var es=btoa( u8a2str( Ark12( str2u8a(s) ) ) );
+	X0I_busy=true;
+	XHR("/./x0i/"+(es.replace(/\//g,"_").replace(/\+/g,"-").replace(/\=/g,"~")),false,
+	function(){ if(typeof cb=="function")cb.apply(this,arguments); X0I_busy=false; if(bkcb.length) X0I("",false,i||1); });
+};
+//end API core functions section
+
+
+
+//main page elements
+var ballm=d[gId]("ball_m"), gui=d[gId]("gui"), topMu=d[gId]("topmenu"), shoKeyB=d[gId]("sho_keyb"),
+fitr=d[gId]("fitr"), _dbg=d[gId]("dbgb");
+gui.ctrlb=gui[gTN]("div")[0];
+
+	//top menu section
+Object.assign(topMu,{
+ shb:d[gId]("shMnu"),
+ hb:d[gId]("disApear"),
+ sDsk:d[gId]("sDesk"),
+ sTbm:d[gId]("sTmouse"),
+ sMky:d[gId]("sMkey"),
+ sFtr:d[gId]("sFitr"),
+ sDbg:d[gId]("sDbg")
+});
+
+var mkDo=function MakeMenuButtonDo(targS){
+ if(targS) return function ShowHidePageArea(){ if(targS.display=="none")targS.display="";else targS.display="none"; };
+};
+
+topMu.shb.onclick=mkDo(topMu.hb.style);
+
+topMu.sTbm.onclick=function ShowTrackerBallMouse(){ self.caLLibrate_screen(); if(ballm.style.display=="none")ballm.style.display="";else ballm.style.display="none"; };
+
+
+topMu.sMky.onclick=function(){ var ts=gui.ctrlb.style; if(ts.display=="none"){ts.display="";shoKeyB.focus();}else{ts.display="none";d.body.focus();} };
+//gui (desk) button is set at end of gui section
+topMu.sFtr.onclick=mkDo(fitr.style);
+topMu.sDbg.onclick=mkDo(_dbg.style);
+
+	//end top menu section
+
+
+	//login section
+var lgnF=d[gId]("lgn_f"), _K=d[gId]("k"), lgnB=d[gId]("lgn");
+self.is_lgdn=(self.is_lgdn2=function is_lgdn(B){
+  if(B){
+	lgnF.style.display="none"; topMu.hb.style.display=""; d.title="Remote Desk Server";
+	self.caLLibrate_screen();
+  }else{
+	alert("Error, please try login again."); lgnF.style.display="";
+	_dbg.style.display=(fitr.style.display=(ballm.style.display=(gui.style.display="none")));
+  }
+});
+var last_tryK=0, 
+tryK=function try_key(a,NOKEY,nwFak){
+	var ttry=(new Date()).getTime();
+	if(ttry-last_tryK<200) return 0;
+	chngCuk(NOKEY?false:_K.value);
+	jrequire("/./is_lgdn.js"+(nwFak?"?nw_chll=1":""));
+	last_tryK=(new Date()).getTime();
+};
+_K.onkeyup=function(e){ if(e.key=="Enter") tryK(); };
+lgnB.onclick=tryK;
+
+	//end login section
+
+
+//		I M P O R T A I N T   !! !! \/
+
+// 		MUST run is_lgdn.js?nw_chll=1   	BEFORE the first request of anything that requires fak because cookie _rfak is auto deleted by server every time regardless if it's used or not
+
+
+	//debug box section
+var dbg_txb=_dbg[gTN]("textarea");
+self.dbgClear=function DebugConsoleClear(e){ dbg_txb[typeof e=="number"?e:1].value=""; };
+dbg_txb[1].onkeyup=function RunDebugCmd(e){
+ if(e.key=="Enter"){
+	setTimeout(self.dbgClear,100);
+	var ipc=dbg_txb[1].value,rzv;
+	try{rzv=eval(ipc);}catch(err){rzv="Error: "+(self.LdbgErr=err);};
+	dbg_txb[0].value+=" >> "+ipc+"\r\n < "+rzv+"\r\n";
+ }
+};
+	//end debug box section
+
+
+	//trackerball mouse section
+
+var ball=d[gTN]("ball")[0], mB_a=Array.of.apply(Array,ballm[gTN]("mbtn"));
+
+/*
+touchstart == mousedown (finger down)
+touchmove == mousemove (drag)
+touchend == mouseup (finger lifted)
+
+only pay attention to which html element the touchstart event lands on,
+then follow events as if they're all from that element untill touchend
+*/
+
+var Mmove_xyAdj=function MouseMoveXYadjust(x,y){ let xd=0.7+(Math.abs(x)/200),yd=0.7+(Math.abs(y)/200); return [Math.round(x*xd),Math.round(y*yd)]; },
+mouse_eTarg="none", mouse_lastX=0, mouse_lastY=0,
+mouse_downNoDbl=0, m_btn_isDown=[],
+mouse_downEvent=function TballMouseDownEventHandler(e){
+  var fTme=(new Date()).getTime(), lTme=mouse_downNoDbl;
+  mouse_downNoDbl=fTme; //prevent double event from both touch and mouse events firing on windows touchsreen devices
+  if((fTme-lTme)<40) return "Extra event error (click and touch ?)";
+	
+
+  var mBtn, tar=e.target||e.srcElement;  // alert(tar.outerHTML); //debug
+  if(tar==ball){
+	e.stopPropagation(); //need to prevent left right click while rolling ball
+	m_btn_isDown._ball=true; //mouse_eTarg="ball";
+	//grab x y coordinates
+	mouse_lastX=e.touches?e.touches[0].clientX:e.clientX;
+	mouse_lastY=e.touches?e.touches[0].clientY:e.clientY;
+  }else if((mBtn=mB_a.indexOf(tar)+1)&&(!m_btn_isDown[mBtn])){ // mouse button	//mouse_eTarg=mBtn;
+	if(mBtn==2) mouse_lastY=e.touches?e.touches[0].clientY:e.clientY; 
+	else //do NOT click so we can scroll?
+	if(m_btn_isDown[mBtn]/*mouse_eTarg!="none"*/) return "Extra down click? "+mBtn;
+	if(mBtn!=2) X0I("mousedown "+mBtn); m_btn_isDown[mBtn]=true; 
+
+  }
+	//if(m_btn_isDown[mBtn]) console.log(sv_backlog("Prevented double mouse down"));
+}; //end of mouse_downEvent
+ballm.ontouchstart=(ballm.onmousedown=mouse_downEvent);
+
+
+var mouse_moveNoDbl=0,
+mouse_moveEvent=function TballMouseMoveEventHandler(e){
+  var fTme=(new Date()).getTime(), lTme=mouse_moveNoDbl;
+  mouse_moveNoDbl=fTme; //prevent double event from both touch and mouse events firing on windows touchsreen devices
+  if((fTme-lTme)<40) return "Extra event error (click and touch ?)";
+
+	//only use this for ball or scroll wheel
+	if(m_btn_isDown._ball/*mouse_eTarg=="ball"*/){
+		//e.stopPropagation(); //need to prevent scrolling while rolling ball
+		var nwY, nwX;  //changedTouches for touchend ?
+		if(e.touches){ nwX=e.touches[0].clientX; nwY=e.touches[0].clientY; }
+		else{ nwX=e.clientX; nwY=e.clientY; }
+
+		let [ mvX, mvY ] = Mmove_xyAdj(nwX-mouse_lastX,nwY-mouse_lastY);
+		if(mvX||mvY) X0I("mousemove_relative -- "+mvX+" "+mvY);
+		mouse_lastX=nwX; mouse_lastY=nwY;
+
+	}else if(m_btn_isDown[2]/*mouse_eTarg==2*/){
+		//how to scroll? https://askubuntu.com/questions/474546/is-there-a-command-to-scroll
+		var nwY=e.touches?e.touches[0].clientY:e.clientY;
+		var scroll_am=Math.round((nwY-mouse_lastY)/7), dr=scroll_am<0?4:5;
+		var am_a=(new Array(Math.abs(scroll_am))).fill("click "+dr).join(" ");
+
+		if(scroll_am) X0I(am_a);
+
+		mouse_lastY=nwY;
+	}
+};
+ballm.ontouchmove=(ballm.onmousemove=mouse_moveEvent);
+
+	//	set Interval for mouse_moveEvent when ball is mousedown touch only and clear interval when mouseup?
+
+var mouse_upNoDbl=0,
+mouse_upEvent=function TballMouseUpEventHandler(e){
+  var fTme=(new Date()).getTime(), lTme=mouse_upNoDbl;
+  mouse_upNoDbl=fTme; //prevent double event from both touch and mouse events firing on windows touchsreen devices
+  if((fTme-lTme)<40) return "Extra event error (click and touch ?)";
+	//e.stopPropagation(); //need to prevent left right click while rolling ball
+
+	//only use this for ball or scroll wheel
+	if(m_btn_isDown._ball/*mouse_eTarg=="ball"*/){
+		var nwY, nwX;  //changedTouches for touchend ?
+		if(e.changedTouches){ nwX=e.changedTouches[0].clientX; nwY=e.changedTouches[0].clientY; }
+		else{ nwX=e.clientX; nwY=e.clientY; }
+
+		//mouse_lastX; mouse_lastY;
+          let [ mvX, mvY ] = Mmove_xyAdj(nwX-mouse_lastX,nwY-mouse_lastY);
+          if(mvX||mvY) X0I("mousemove_relative -- "+mvX+" "+mvY);
+	  m_btn_isDown._ball=false;//mouse_eTarg="none";
+	}else if(m_btn_isDown[2]/*mouse_eTarg==2*/){
+		var nwY=e.changedTouches?e.changedTouches[0].clientY:e.clientY;
+		var scroll_am=Math.round((nwY-mouse_lastY)/7), dr=scroll_am<0?4:5;
+		var am_a=(new Array(Math.abs(scroll_am))).fill("click "+dr).join(" ");
+
+		if(scroll_am) X0I(am_a);
+		m_btn_isDown[2]=false;//mouse_eTarg="none"; //dont press scroll button
+		return "scrolled";
+	}
+
+	var /*ctarg=mouse_eTarg,*/act0n=[],cmb=1,L_=4;
+	while(cmb<L_){ if(m_btn_isDown[cmb]) act0n.push(cmb); cmb++; };
+	if(act0n.length){ X0I("mouseup "+act0n.join(" mouseup "),function(){ while(act0n.length)m_btn_isDown[act0n.pop()]=false; }); }
+};
+ballm.ontouchend=(ballm.onmouseup=mouse_upEvent);
+
+	//end trackerball mouse section
+
+
+
+	// GUI section
+		//need to make canvas element maker & re-maker (in case mobile device rotate orientation change)
+		// using document.documentElement.clientHeight actual webpage pixel size,
+		/*
+then use size to set the resize to for screenshot request
+		*/
+var gui_is_activated=false,
+gui_svr_dX, gui_svr_dY,
+gui_m_lastX=0, gui_m_lastY=0,
+gui_mouseMove=function guiMouseMoveEventHandler(e){
+  if("none"==ballm.style.display){
+	var fTme=(new Date()).getTime(), lTme=mouse_moveNoDbl;
+	mouse_moveNoDbl=fTme; //prevent double event from both touch and mouse events firing on windows touchsreen devices
+	if((fTme-lTme)<40) return "Extra event error (click and touch ?)";
+
+	var tar=e.target||e.srcElement,canvas=gui.ctx&&gui.ctx.canvas;
+	if(!(canvas&&tar==canvas)) return "Mouse move off screen invalid.";
+	var nwY, nwX;  //changedTouches for touchend ?
+	if(e.touches){ nwX=e.touches[0].clientX; nwY=e.touches[0].clientY; }
+	else{ nwX=e.clientX; nwY=e.clientY; }
+	var xC=Math.round((nwX/canvas.clientWidth)*gui_svr_dX),yC=Math.round((nwY/canvas.clientHeight)*gui_svr_dY);
+	if(gui_m_lastX==xC&&gui_m_lastY==yC) return "Event, no move";
+	X0I("mousemove "+xC+" "+yC);
+	gui_m_lastX=xC; gui_m_lastY=yC;
+  }
+}, //end of gui_mouseMove
+
+gui_img=d[cE]("img"), // img.naturalWidth
+gui_vid=d[cE]("video"), // videoElement.videoWidth
+activate_gui=function ActivateGUIdesktop(a,reac,geom){
+	var gus=gui.style; if(""==gus.display){  gus.display="none"; clearInterval(gui.actin); return 0; }  //interval will still be needed for video to draw frames, just decrease to 90ms and put ctx.drawImage(gui_vid (10 frames per second is 100ms, draw at 90 so don't miss frames
+	var canvas=gui.ctx&&gui.ctx.canvas;
+
+	if((!gui_is_activated)||reac){
+	  if(!geom){ X0I("getdisplaygeometry",function(e){ ActivateGUIdesktop(a,reac,this.response||"800 600"); }); return 0;}
+	  var ge0m=geom.split(" "); gui_svr_dX=ge0m[0]*1; gui_svr_dY=ge0m[1]*1;
+	  if(isNaN(gui_svr_dX)||isNaN(gui_svr_dY)){ gui_svr_dX=800; gui_svr_dY=600; }
+	  if(!canvas){ canvas=d[cE]("canvas"); canvas.ontouchmove=(canvas.onmousemove=gui_mouseMove); }
+	  if(!canvas.parentNode){ canvas.width=gui_svr_dX; canvas.height=gui_svr_dY;  gui[aC](canvas); }
+	  var ctx=gui.ctx||(gui.ctx=canvas.getContext("2d"));
+	  gui_img.onload=function(){ if(gui_img.naturalWidth) ctx.drawImage(gui_img,0,0,gui_svr_dX,gui_svr_dY); gui_img.busy=false; };
+	  gui_img.onerror=function(){ gui_img.busy=false; };
+	}
+	gus.display="";
+	self.caLLibrate_screen(); //set visible canvas size
+	if(typeof gui.actin=="number"){ clearInterval(gui.actin); gui.actin=false; }
+	//only reauth if gui_img is NOT busy
+	var sset=function GUI_imgSrcSet(){ if(gui_img.busy) return "busy"; if(reauth_if(GUI_imgSrcSet,this)) return "iNeedAuth :)"; gui_img.busy=true; gui_img.src="./screen.jpeg?rff="+Math.random().toString(36).substr(2); };
+	gui.actin=setInterval(sset,200);
+	gui_is_activated=true;
+};
+topMu.sDsk.onclick=activate_gui;
+	//end GUI section
+
+
+
+self.caLLibrate_screen=function callibrate_object_sizes_on_screen(){
+	var dE=d.documentElement, smaller=300,
+	tX=dE.clientHeight,tY=dE.clientWidth;
+	smaller=(tX<tY)?tX:tY;
+
+	//ball
+	var ball_sz=Math.round(smaller*0.75);
+	ball.style.height=(ball.style.width=""+ball_sz+"px");
+	var Los=ball_sz/2;
+	ball.style.left="-"+Math.round(Los)+"px";
+	ball.style.top="-"+Math.round(Los*0.8)+"px";
+	//end of ball
+
+	//gui desk
+	if(gui.ctx&&gui_svr_dX){
+		var dE=d.documentElement, tY=Math.floor(dE.clientHeight),tX=Math.floor(dE.clientWidth), 
+		smX, smY, svrRato=gui_svr_dX/gui_svr_dY, locRato=tX/tY, xDf=tX/gui_svr_dX, yDf=tY/gui_svr_dY, 	 canS=gui.ctx.canvas.style;
+
+		smX=tX; smY=gui_svr_dY*xDf;
+		if(smY>tY){ smX*=(tY/smY); smY=tY;  smX=Math.round(smX); }
+		if(smX>9000||smX<100||smY>6000||smY<64){ console.error("crazxy scaling error:  "+smX+" x "+smY); }
+
+		if(svrRato>locRato){ canS.height=""; canS.width=(tX-4)+"px"; }else{ canS.width=""; canS.height=(tY-4)+"px"; }
+	}
+	//end of gui desk
+}; //end of caLLibrate_screen
+
+self.onresize=self.caLLibrate_screen; //fit desktop no matter window size !  :)
+
+
+//file browser section:
+//example directory array object
+{"name":"","size":0,"isDir":0,/*"user":cst.uid,*/
+		"atime":0,"mtime":0,"ctime":0, "permissions":0}&&null;
+
+var FileBusy=false,
+FileReq=function FileApiRequest(fPth,cb,upL_body,cstart,reDat,i){
+	if(FileBusy){ return "A File operation is already pending"; }
+	if(reauth_if(FileApiRequest,this,arguments)){
+		if(typeof i!="number") i=0;
+		var wrs="Warning, FileReq call stack is too high for comfort ( stack > 5 )"; i++;
+		if(i>5){ console.error(sv_backlog(wrs)); alert(wrs); return wrs; }
+		 console.log("FileReq called, waiting auth");
+		return "Wait for new fak (auth)";
+	}
+	var es=btoa( u8a2str( Ark12( str2u8a(fPth) ) ) ), start="";
+	FileBusy=true;
+	if(typeof cstart=="number") start="/?range="+cstart;
+	XHR("/./fig/"+(es.replace(/\//g,"_").replace(/\+/g,"-").replace(/\=/g,"~"))+start,upL_body,
+	function(){ if(typeof cb=="function")cb(this.response); FileBusy=false; },reDat?"arraybuffer":false);
+};
+
+//end of file browser section
+
+</script>
+</body>
+</html>
+
+
