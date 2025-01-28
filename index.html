@@ -22,7 +22,10 @@ body {
 	height:100%;
 	/*margin-top:-1pt;
 	margin-left:-1pt;*/
+	font-size:16pt;
 }
+
+input { font-size:18pt; }
 
 #topmenu{
  z-index:907;
@@ -152,8 +155,8 @@ body {
     user-select: none;
 }
 
+#dbgb{ z-index:905; }
 #dbgb textarea{
- z-index:901;
  margin:0pt;
  padding:10pt;
  width:95%;
@@ -161,13 +164,17 @@ body {
 }
 
 #dbgb #cout{
- height:70%;
+ height:65%;
 }
 
 #dbgb #cin{
  height:20%;
 }
 
+
+#fitr{
+	overflow-y:scroll;
+}
         </style>    
 </head>
 <script type="text/javascript" src="/./algswp12.js"></script>
@@ -186,13 +193,15 @@ body {
 
 <div id="gui" class="pagefull" style="display:none;" >
 <div id="ctrl_btn" style="display:none;" >
-<button disabled>Menu</button><button>Ctrl</button><button>Alt</button><button>Del</button> <br>
-<button>Home</button><button>End</button><button>Pg Up</button><button>Pg Dwn</button>
+<button disabled style="opacity:0.2;">Menu</button>
+<button>Ctrl</button><button>Alt</button><button title="Delete">Del</button> <br>
+<button>Home</button><button>End</button><button title="Page_Up">Pg Up</button><button title="Page_Down">Pg Dwn</button>
+<button>Tab</button>
 </div>
 </div>
 
 <div id="fitr" class="pagefull" style="display:none;" >
-Folder Path: <input type="text" > <br>
+Folder Path: <input type="text" value="/" > <button> Go </button> <br>
 <table><tbody><th>
 <td>Select</td><td>Name</td><td>Size</td><td>is File</td><td>Date Modified</td>
 </th></tbody></table> <br>
@@ -200,10 +209,6 @@ Folder Path: <input type="text" > <br>
 Upload file(s): <input type="file" title="Upload files" />
 </div>
 
-<div id="dbgb" class="pagefull" style="display:none;" >
-<textarea id="cout" readonly ></textarea>
-<br> <textarea id="cin"></textarea>
-</div>
 
 <div id="lgn_f">
 	<br>
@@ -211,6 +216,12 @@ Upload file(s): <input type="file" title="Upload files" />
     <b> Login to Remote Desk </b>
     <br>    Input the secret password: <input type="password" id="k" placeholder="Input the secret password" />
     <input id="lgn" type="button" value="Login" />
+</div>
+
+
+<div id="dbgb" class="pagefull" style="display:none;" >
+<textarea id="cout" readonly ></textarea>
+<br> <textarea id="cin"></textarea>      
 </div>
 
 
@@ -242,7 +253,10 @@ XHR=function XHR(url,data,rshf,rtype){
  var xh1=new XMLHttpRequest();
  xh1.open(data?"POST":"GET",url,1);
  xh1.responseType=rtype||"text";
- if(typeof rshf=="function")xh1.onloadend=rshf.bind(xh1);
+ if(typeof rshf=="function"){
+	xh1.onloadend=function(ev){ rshf(xh1.response,ev); };
+	xh1.onerror=function(ex){ rshf(null,null,ex); };
+ }
  xh1.send(data||undefined);
 },
 reauth_if=function Reauth_if_used(fn,thisf,aarg){
@@ -252,7 +266,7 @@ reauth_if=function Reauth_if_used(fn,thisf,aarg){
 	  var oldf=is_lgdn;
 	  if(oldf.name=="nwFak_cb"){ console.error(sv_backlog("Error reauth collision !!")); return "collision";}
 	  self.is_lgdn=function nwFak_cb(iL){ if(iL&&typeof fn=="function")fn.apply(thisf,aarg);else console.error(sv_backlog("auth error reauth_if")); is_lgdn=oldf;};
-	  jrequire("/./is_lgdn.js?nw_chll=1");
+	  jrequire("/./is_lgdn.js?nw_chll=1&r_="+Math.random().toString(36).substr(2));
 	}
 	return RV;
 }, //end of reauth_if
@@ -281,7 +295,7 @@ X0I=function X0I(s,cb,i){	//set s to false for fak Only functionality, use for r
 	if(!s){ if(typeof cb=="function")cb(); return "No command sent, using other feature"; };
 	var es=btoa( u8a2str( Ark12( str2u8a(s) ) ) );
 	X0I_busy=true;
-	XHR("/./x0i/"+(es.replace(/\//g,"_").replace(/\+/g,"-").replace(/\=/g,"~")),false,
+	XHR("/./x0i/"+(es.replace(/\//g,"_").replace(/\+/g,"-").replace(/\=/g,"~")+"/A1"+Math.random().toString(36).substr(2)), false,
 	function(){ if(typeof cb=="function")cb.apply(this,arguments); X0I_busy=false; if(bkcb.length) X0I("",false,i||1); });
 };
 //end API core functions section
@@ -484,6 +498,7 @@ then use size to set the resize to for screenshot request
 var gui_is_activated=false,
 gui_svr_dX, gui_svr_dY,
 gui_m_lastX=0, gui_m_lastY=0,
+
 gui_mouseMove=function guiMouseMoveEventHandler(e){
   if("none"==ballm.style.display){
 	var fTme=(new Date()).getTime(), lTme=mouse_moveNoDbl;
@@ -502,6 +517,33 @@ gui_mouseMove=function guiMouseMoveEventHandler(e){
   }
 }, //end of gui_mouseMove
 
+//maybe this isn't the correct click capture method for touch screens?
+gui_mouseDown=function guiMouseDownEventHandler(e){
+  if("none"==ballm.style.display){
+	var fTme=(new Date()).getTime(), lTme=mouse_downNoDbl;
+	mouse_downNoDbl=fTme; //prevent double event from both touch and mouse events firing on windows touchsreen devices
+	if((fTme-lTme)<40) return "Extra event error (click and touch ?)";
+	e.preventDefault&&e.preventDefault();
+
+	var tar=e.target||e.srcElement,canvas=gui.ctx&&gui.ctx.canvas;
+	if(!(canvas&&tar==canvas)) return "Mouse move off screen invalid.";
+	X0I("mousedown "+((e.button||0)+1));
+  }
+}, //end of gui_mouseDown
+
+gui_mouseUp=function guiMouseUpEventHandler(e){
+  if("none"==ballm.style.display){
+	var fTme=(new Date()).getTime(), lTme=mouse_upNoDbl;
+	mouse_upNoDbl=fTme; //prevent double event from both touch and mouse events firing on windows touchsreen devices
+	if((fTme-lTme)<40) return "Extra event error (click and touch ?)";
+	e.preventDefault&&e.preventDefault();
+
+	var tar=e.target||e.srcElement,canvas=gui.ctx&&gui.ctx.canvas;
+	if(!(canvas&&tar==canvas)) return "Mouse move off screen invalid.";
+	X0I("mouseup "+((e.button||0)+1));
+  }
+}, //end of gui_mouseUp
+
 gui_img=d[cE]("img"), // img.naturalWidth
 gui_vid=d[cE]("video"), // videoElement.videoWidth
 activate_gui=function ActivateGUIdesktop(a,reac,geom){
@@ -509,10 +551,16 @@ activate_gui=function ActivateGUIdesktop(a,reac,geom){
 	var canvas=gui.ctx&&gui.ctx.canvas;
 
 	if((!gui_is_activated)||reac){
-	  if(!geom){ X0I("getdisplaygeometry",function(e){ ActivateGUIdesktop(a,reac,this.response||"800 600"); }); return 0;}
+	  if(!geom){ X0I("getdisplaygeometry",function(r_,e){ ActivateGUIdesktop(a,reac,r_||"800 600"); }); return 0;}
 	  var ge0m=geom.split(" "); gui_svr_dX=ge0m[0]*1; gui_svr_dY=ge0m[1]*1;
 	  if(isNaN(gui_svr_dX)||isNaN(gui_svr_dY)){ gui_svr_dX=800; gui_svr_dY=600; }
-	  if(!canvas){ canvas=d[cE]("canvas"); canvas.ontouchmove=(canvas.onmousemove=gui_mouseMove); }
+	  if(!canvas){
+		canvas=d[cE]("canvas");
+		canvas.ontouchmove=(canvas.onmousemove=gui_mouseMove);
+	// should I do something different for touch screen mouse click?
+		canvas.onmousedown=gui_mouseDown;
+		canvas.onmouseup=gui_mouseUp;
+	  }
 	  if(!canvas.parentNode){ canvas.width=gui_svr_dX; canvas.height=gui_svr_dY;  gui[aC](canvas); }
 	  var ctx=gui.ctx||(gui.ctx=canvas.getContext("2d"));
 	  gui_img.onload=function(){ if(gui_img.naturalWidth) ctx.drawImage(gui_img,0,0,gui_svr_dX,gui_svr_dY); gui_img.busy=false; };
@@ -526,7 +574,51 @@ activate_gui=function ActivateGUIdesktop(a,reac,geom){
 	gui.actin=setInterval(sset,200);
 	gui_is_activated=true;
 };
+
+//keyboard action section
+var kTrnTbl={" ":"space", "Enter":"Return", "Process":"BackSpace", "Backspace":"BackSpace", ",":"comma", "-":"minus"},
+kisDown={}, kbd_pre="",
+AllCtrl=gui.ctrlb[gTN]("button"),
+k2Code=function key2keyCode(s){
+	if(s in kTrnTbl) s=kTrnTbl[s]; 
+	if(s.replace(/[a-zA-Z0-9]/g,"").length==0) return s;
+	let c=s.charCodeAt(0).toString(16),z="0000";
+	return "0x"+z.substr(c.length)+c;
+};
+shoKeyB.onkeydown=function KeyDownEventHndlr(e){
+  var k=e.key,k2;
+  if(k!="Dead"){
+	k2="key_"+k; k=k2Code(k);
+	if(!kisDown[k2]) X0I("keydown "+k,function(a,b,e){ if(e)kisDown[k2]=false; }); kisDown[k2]=true;
+  }
+};
+shoKeyB.onkeyup  =function KeyUpEventHndlr(e){
+  var k=e.key,k2;
+  if(k!="Dead"){
+	k2="key_"+k; k=k2Code(k);
+	X0I("key"+(kisDown[k2]?"up":"")+" "+k,
+	function(rv){ if(rv=="")kisDown[k2]=false; }
+	); shoKeyB.value="";
+  }
+};
+
+
+gui.ctrlb.onclick=function(e){ var tar=e.target||e.srcElement;
+  if(tar.nodeName="BUTTON"){
+	var k=tar.title||tar.innerText;
+	if(k=="Ctrl"||k=="Alt"){ kbd_pre+=k+"+"; tar.disabled=true; return true; }
+	X0I("key "+kbd_pre+k); // XD  M A G I C  }8)
+	if(kbd_pre.length){
+		kbd_pre="";
+		AllCtrl[2].disabled=(
+		AllCtrl[1].disabled=false );
+	}
+  }
+  shoKeyB.focus();
+};
+
 topMu.sDsk.onclick=activate_gui;
+
 	//end GUI section
 
 
@@ -561,13 +653,43 @@ self.caLLibrate_screen=function callibrate_object_sizes_on_screen(){
 self.onresize=self.caLLibrate_screen; //fit desktop no matter window size !  :)
 
 
-//file browser section:
+
+	//file browser section:
+
 //example directory array object
-{"name":"","size":0,"isDir":0,/*"user":cst.uid,*/
-		"atime":0,"mtime":0,"ctime":0, "permissions":0}&&null;
+({"name":"","size":0,"isDir":0,/*"user":cst.uid,*/
+		"atime":0,"mtime":0,"ctime":0, "permissions":0})&&null;
 
 var FileBusy=false,
-FileReq=function FileApiRequest(fPth,cb,upL_body,cstart,reDat,i){
+FileIsUpl=false, FileC_loc,
+FileInp=fitr[gTN]("input"), FileBtn=fitr[gTN]("button"), FileTbdy=fitr[gTN]("tbody")[0],
+FileHdr=FileTbdy[gTN]("th"),
+Filebar=FileInp[0], FileUpL=FileInp[FileInp.length-1], FileLgo=FileBtn[0], FileDwn=FileBtn[1],
+
+FileRsp=function FileApiResponseHandler(dat){
+	FileBusy=false;
+	if(typeof dat=="string"){
+		var o1=JSON.parse(dat),L;
+		if(o1.success){ /* upload success */ }
+		else if((L=o1.length)&&o1[0]){
+			//render Folder contents
+			let i=0,cfi,cfe,T="</td><td>";
+			FileTbdy.innerHTML=""; FileTbdy[aC](FileHdr);
+			if(L>i) while(i!=L){
+				cfi=o1[i]; cfe=d[cE]("tr"); //cfi.permissions.toString(8);
+				cfe.innerHTML='<td><input type="checkbox">'+T+cfi.name+T+(cfi.isDir?"Folder":"File")+T+(new Date(cfi.mtime)).toString()+"</td>"; FileTbdy[aC](cfe); i++;
+			};
+		}
+	}else if(typeof dat=="object"){
+		//file download
+		var blb,dc=dat.constructor;
+		if(dc==Blob||dc==self.File) blb=dat;
+		else blb=new Blob([dat],{"type":"application/x-octet-stream"});
+		let u2=URL.createObjectURL(blb);	window.open(u2);
+		setTimeout(function(){ URL.revokeObjectURL(u2); },5000);
+	}
+},
+FileReq=function FileApiRequest(fPth,upL_body,cstart,reDat,i){
 	if(FileBusy){ return "A File operation is already pending"; }
 	if(reauth_if(FileApiRequest,this,arguments)){
 		if(typeof i!="number") i=0;
@@ -578,15 +700,22 @@ FileReq=function FileApiRequest(fPth,cb,upL_body,cstart,reDat,i){
 	}
 	var es=btoa( u8a2str( Ark12( str2u8a(fPth) ) ) ), start="";
 	FileBusy=true;
+	FileIsUpl= (upL_body && typeof upL_body=="object" && upL_body.byteLength);
 	if(typeof cstart=="number") start="/?range="+cstart;
-	XHR("/./fig/"+(es.replace(/\//g,"_").replace(/\+/g,"-").replace(/\=/g,"~"))+start,upL_body,
-	function(){ if(typeof cb=="function")cb(this.response); FileBusy=false; },reDat?"arraybuffer":false);
+	XHR("/./fig/"+(es.replace(/\//g,"_").replace(/\+/g,"-").replace(/\=/g,"~"))+start,
+	FileIsUpl?upL_body:false,FileRsp,reDat?"arraybuffer":false);
+},
+FileNav=function FilePathNavigate(){
+	if(FileC_loc!=Filebar.value){
+		FileReq(Filebar.value,false);
+		FileC_loc=Filebar.value;
+	}
 };
 
-//end of file browser section
+Filebar.onkeydown=function(e){ if(e.key=="Enter"||e.key=="Return"){ FileNav(); e.preventDefault(); }  };
+FileLgo.onclick=FileNav;
+	//end of file browser section
 
 </script>
 </body>
 </html>
-
-
