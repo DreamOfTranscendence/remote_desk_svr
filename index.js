@@ -9,6 +9,10 @@ let /*http = require("http"), */
   stream=require("stream");
 
 
+	//	server options, currently only ssl certpath
+self.global_svr_opt=JSON.parse(fs.readFileSync("options.json","utf8"));
+
+
 let { randomBytes } = require("crypto");
 self.randomBytes=randomBytes;
 
@@ -44,14 +48,12 @@ Object.assign(self, {_lgdn : {},  //session uuids of loggedin users
   _chllng : {},  //active fak challenges
   
   _create_chllng:function CreateFakChallenge(uuid,ca){
+	//console.log("Set new challenge for uid "+uuid);
     //ca == set cookie array
 	var fak,Lo,cc_=Object.keys(self._chllng);
-    if(cc_.length<10){
+    if(cc_.length>=4){ delete self._chllng[cc_[0]]; }
 	fak=randomBytes(48);
 	self._chllng[uuid+"_fak_"+fak.toString("base64")]=true;
-    }else{
-	Lo=self._chllng[cc_[0]]; fak=Buffer.from( Lo.substr(Lo.indexOf("_fak_")+5),"base64");
-    }
     var chllng=Ark12( pFak(Ark12(new Uint8Array(fak))) );
     if(typeof ca=="object"&&ca.constructor==Array){
       ca.push("_fak="+(Buffer.from(chllng)).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/\=/g,"~")+"; SameSite=Strict; Path=/");
@@ -136,7 +138,7 @@ Object.assign(self, {prpr : function ParamParse(vs, isUrl) {
 
 //(if rspS variable type is stream, set pipe to true on rspnd() )
 "upL_file":function Upload_File(fpth,req_hed,bod){
-	var rv={"rspS":"unknown error","hed":{},"mime":"application/json","sc":200},fst;
+	var rv={"rspS":'{"error":"unknown error"}',"hed":{},"mime":"application/json","sc":200},fst;
 	if((!bod)||bod.length==0){ rv.sc=400; rv.rspS='{"error":"400 Bad request, empty body"}'; return rv; }
 	req_hed=req_hed||{};
 	var rrange=req_hed["file-range"]||req_hed["content-range"],start=0,end,wf;
@@ -167,15 +169,11 @@ screensh_buf:[] }); //might need this for comparing 2 images to diff to save ban
 
 
 self._MonStat=function MakeMonitorOn(){
-	exec_.execSync("xset -q | grep \"Monitor is \"",function(e,o,e2){
+	exec_.exec("xset -q | grep \"Monitor is \"",function(e,o,e2){
 		let s_s=o.toString("binary").toLowerCase();
 		if(s_s.indexOf("monitor is on")==-1) console.log("Turned Monitor on "+exec_.execSync("xset -display ${DISPLAY} dpms force on").toString("binary"));
 	})&&null;
 };
-
-
-self.global_svr_opt=JSON.parse(fs.readFileSync("options.json","utf8"));
-
 
 
 	//https server options
@@ -207,7 +205,7 @@ self.srv_func = function Server_func(req, res) {
 	  console.log("new client connected:  "+cra);
 	}
 	ccli.reqn++; if(ccli.lgdn) ccli.failq=0; else ccli.failq++;
-	if( ccli.failq > 5 && (!ccli.lgdn) && rDte-ccli.lrt < self.min10 ) ccli.ban=true;
+	if( ccli.failq > 7 && (!ccli.lgdn) && rDte-ccli.lrt < self.min10 ) ccli.ban=true;
 	ccli.lrt=rDte;
 	if(ccli.reqn>65535) ccli.reqn=0;
 
@@ -215,7 +213,7 @@ self.srv_func = function Server_func(req, res) {
 
 	//end brute force prevention
 
-
+// rb_ is importiant now
     var rbod1 = [], rb_={},
       rspnd = self._rspnd.bind(res);
     req.on("data", function (dat) {
@@ -247,7 +245,7 @@ self.srv_func = function Server_func(req, res) {
         if(rqCuk.cid){
           c_cid=rqCuk.cid;
 	  if(!ccli.acuk) ccli.acuk=true; //client ip has a cookie
-        }else{ c_cid="_"+rDte.toString(36)+"_"+(Math.random().toString(36).substr(2));
+        }else{ c_cid=rDte.toString(36)+"_"+(Math.random().toString(36).substr(2));
         cuka.push("cid="+c_cid+"; HttpOnly"+c_sms);
         }
 	c_uuid="uuid_"+c_cid;
@@ -259,7 +257,11 @@ self.srv_func = function Server_func(req, res) {
 	  "base64")),false,true);
           
           var dfak=Buffer.from(xFak(rf1)).toString("base64"), _chllvl=c_uuid+"_fak_"+dfak;
-          if( gfak=(_lgdn[c_uuid]= (_chllng[_chllvl]) ) ) delete _chllng[_chllvl];
+          if( gfak=(_lgdn[c_uuid]= (_chllng[_chllvl]) ) ){
+		delete _chllng[_chllvl];
+		create_chllng(c_uuid,cuka); //create new when delete
+	  }
+	  //console.log("Challenge answered by "+c_uuid+" with "+dfak);
 	  ccli.lgdn=gfak; // set client ip status to logged in if success
 		cuka.push("_rfak=deleted"+c_sms+del_cuk); //delete cookie so server doesn't think client sent it again.
         }
@@ -278,7 +280,6 @@ self.srv_func = function Server_func(req, res) {
  /*bgn*/}else if(gfak&&unp[1]=="x0i"){
 	  // should I switch to ydotool?  there would be no way to getdisplaygeometry?
 
-          create_chllng(c_uuid,cuka);
 	  self._MonStat();
 	  rhed["Access-Control-Allow-Origin"]="*";
           if(unp[2]&&unp[2].length>5){	
@@ -292,10 +293,9 @@ self.srv_func = function Server_func(req, res) {
           mime="text/plain";
  /*bgn*/}else if(gfak&&unp[1]=="screen.jpeg"){
 		rhed["Access-Control-Allow-Origin"]="*";
-          create_chllng(c_uuid,cuka);
 
 	  var scren,sbuf=screensh_buf[0];
-	  if( sbuf && rDte-sbuf.Dte<190 ) scren=sbuf.dat;
+	  if( sbuf && (rDte-sbuf.Dte)<192 ) scren=sbuf.dat;
 	  else{
 		self._MonStat(); //do need here?
 		scren=exec_.execSync("import -window root -resize 900x600 jpeg:-");null;
@@ -314,7 +314,6 @@ self.srv_func = function Server_func(req, res) {
           //end of screenshot page
 
  /*bgn*/}else if(unp[1]=="fig"&&gfak&&unp[2]){
-		create_chllng(c_uuid,cuka);
 		var fpth=Ark12(new Uint8Array(
 		Buffer.from(unp[2].replace(/\_/g,"/").replace(/\-/g,"+").replace(/(\~|\%7E)/g,"="),"base64")
 		),false,true),
