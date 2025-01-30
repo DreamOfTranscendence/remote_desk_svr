@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html>
 <head>
@@ -369,7 +370,7 @@ lgnB.onclick=tryK;
 var dbg_txb=_dbg[gTN]("textarea");
 self.dbgClear=function DebugConsoleClear(e){ dbg_txb[typeof e=="number"?e:1].value=""; };
 dbg_txb[1].onkeyup=function RunDebugCmd(e){
- if(e.key=="Enter"){
+ if(e.key=="Enter"||e.key=="Return"){
 	setTimeout(self.dbgClear,100);
 	var ipc=dbg_txb[1].value,rzv;
 	try{rzv=eval(ipc);}catch(err){rzv="Error: "+(self.LdbgErr=err);};
@@ -541,6 +542,7 @@ gui_mouseUp=function guiMouseUpEventHandler(e){
 	var tar=e.target||e.srcElement,canvas=gui.ctx&&gui.ctx.canvas;
 	if(!(canvas&&tar==canvas)) return "Mouse move off screen invalid.";
 	X0I("mouseup "+((e.button||0)+1));
+	return false;
   }
 }, //end of gui_mouseUp
 
@@ -576,7 +578,11 @@ activate_gui=function ActivateGUIdesktop(a,reac,geom){
 };
 
 //keyboard action section
-var kTrnTbl={" ":"space", "Enter":"Return", "Process":"BackSpace", "Backspace":"BackSpace", ",":"comma", "-":"minus"},
+var kTrnTbl={
+" ":"space", "Enter":"Return", "Process":"BackSpace",
+"Backspace":"BackSpace", ",":"comma", "-":"minus",
+"ArrowRight":"Right", "ArrowLeft":"Left", "ArrowUp":"Up", "ArrowDown":"Down"
+},
 kisDown={}, kbd_pre="",
 AllCtrl=gui.ctrlb[gTN]("button"),
 k2Code=function key2keyCode(s){
@@ -601,6 +607,7 @@ shoKeyB.onkeyup  =function KeyUpEventHndlr(e){
 	); shoKeyB.value="";
   }
 };
+
 
 
 gui.ctrlb.onclick=function(e){ var tar=e.target||e.srcElement;
@@ -657,8 +664,8 @@ self.onresize=self.caLLibrate_screen; //fit desktop no matter window size !  :)
 	//file browser section:
 
 //example directory array object
-({"name":"","size":0,"isDir":0,/*"user":cst.uid,*/
-		"atime":0,"mtime":0,"ctime":0, "permissions":0})&&null;
+ ( {"name":"","size":0,"isDir":0,/*"user":cst.uid,*/
+		"atime":0,"mtime":0,"ctime":0, "permissions":0} )&&null;
 
 var FileBusy=false,
 FileIsUpl=false, FileC_loc,
